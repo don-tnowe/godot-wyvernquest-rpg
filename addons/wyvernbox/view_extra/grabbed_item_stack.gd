@@ -3,6 +3,16 @@
 class_name GrabbedItemStackView
 extends ItemStackView
 
+## A node required for handling mouse input in [InventoryView]s.
+
+## Emitted before an input happens onto another item in an inventory, only while an item is being held. [br]
+## [code]onto_item_view[/code]'s [member ItemStackView.stack] contains the [ItemStack] under the cursor, which in turn contains the inventory. [br]
+## Set [member item_input_cancelled] while handling this signal to prevent the action.
+signal input_on_inventory(event : InputEvent, grabbed_item : ItemStack, onto_item_view : ItemStackView)
+## Emitted before an input happens outside GUI, only while an item is being held. [br]
+## Set [member item_input_cancelled] while handling this signal to prevent the action.
+signal input_on_empty(event : InputEvent, grabbed_item : ItemStack)
+
 @export_group("Drop")
 
 ## The node whose position [method drop_on_ground] uses for spawning a ground item.
@@ -27,7 +37,7 @@ extends ItemStackView
 ## The size of the item's texture, if its in-inventory size was [code](1, 1)[/code].
 @export var unit_size := Vector2(18, 18)
 
-## Hide the mouse cursor while item is grabbed.
+## Hide the mouse cursor while item is grabbed. [br]
 ## If item texture lags 1 frame behind the user's cursor, set this to [code]false[/code] to reduce the "floaty" feel.
 @export var hide_cursor := false
 
@@ -37,6 +47,15 @@ var grabbed_stack : ItemStack
 
 ## The [Control] that will trigger [method drop_on_ground] when clicked. Created automatically.
 var drop_surface_node : Control
+
+## Cell position of the item under the cursor.
+var selected_item_position := Vector2(-1, -1)
+
+## [InventoryView] of the item under the cursor.
+var selected_item_inventory : InventoryView
+
+## Set to [code]true[/code] after receiving [signal input_on_inventory] or [signal input_on_empty] to prevent an input action on an item.
+var item_input_cancelled := false
 
 
 static var _instance : GrabbedItemStackView
@@ -162,16 +181,10 @@ func _move_to_mouse():
 	global_position = get_global_mouse_position() - size * 0.5 * scale
 
 
-func _any_inventory_try_drop_stack(stack):
+func _any_inventory_try_drop_stack(stack : ItemStack):
 	var found_stack : ItemStack
 	var invs := InventoryView.get_instances()
-	var invs_reversed := []
-	# Nodes initialized later are placed above (well, if nothing gets created after the initial scene load)
-	# So reversing the array has a higher chance of a correct order
-	invs_reversed.resize(invs.size())
-	for i in invs.size():
-		invs_reversed[i] = invs[invs.size() - 1 - i]
-
+	var invs_reversed := invs
 	for x in invs_reversed:
 		if !x.is_visible_in_tree():
 			continue
@@ -187,23 +200,45 @@ func _any_inventory_try_drop_stack(stack):
 			_set_grabbed_stack(found_stack)
 			return
 
+
+func _update_mouse_selected_item():
+	var invs := InventoryView.get_instances()
+	var invs_reversed := invs
+	# Nodes initialized later are placed above (well, if nothing gets created after the initial scene load)
+	# So reversing the array has a higher chance of a correct order
+	# Which is why the get_instances() array pushes each new inventory to front
+	var mouse_pos := get_global_mouse_position()
+	var found_pos : Vector2
+	for x in invs_reversed:
+		if !x.is_visible_in_tree():
+			continue
+		
+		found_pos =	x.global_position_to_cell(mouse_pos)
+		if found_pos != Vector2(-1, -1):
+			selected_item_inventory = x
+			selected_item_position = found_pos
+			return
+
+	selected_item_inventory = null
+	selected_item_position = Vector2(-1, -1)
+
 ## Drop the specified stack on the ground at [member drop_at_node]'s position as child of [member drop_ground_item_manager].
-func drop_on_ground(stack, click_pos = null):
+func drop_on_ground(stack : ItemStack, click_pos = null):
 	var node = get_node(drop_at_node)
-	var spawn_at_pos = node.global_position if node is Node2D else node.global_position
+	var spawn_at_pos = node.global_position
 	var throw_vec
 	if click_pos == null:
 		throw_vec = null
 
 	elif node is Node2D:
-		throw_vec = (node.get_viewport().canvas_transform.affine_inverse() * click_pos - spawn_at_pos).limit_length(drop_max_distance)
+		throw_vec = (node.get_canvas_transform().affine_inverse() * (get_canvas_transform() * click_pos) - spawn_at_pos).limit_length(drop_max_distance)
 
 	else:
 		var cam : Camera3D = get_node(drop_camera_3d)
 		var origin := cam.project_ray_origin(click_pos)
 		var ray := PhysicsRayQueryParameters3D.create(origin, origin + cam.project_ray_normal(click_pos) * 9999, drop_ray_mask)
 		var hit = node.get_world_3d().direct_space_state.intersect_ray(ray)
-		throw_vec = (hit["position"] - spawn_at_pos).limit_length(drop_max_distance)
+		throw_vec = (hit.position - spawn_at_pos).limit_length(drop_max_distance)
 
 	get_node(drop_ground_item_manager).add_item(stack, spawn_at_pos, throw_vec)
 	if hide_cursor:
@@ -213,7 +248,17 @@ func drop_on_ground(stack, click_pos = null):
 func _input(event : InputEvent):
 	if event is InputEventMouseMotion:
 		_move_to_mouse()
-		
+		_update_mouse_selected_item()
+
+	if is_instance_valid(selected_item_inventory):
+		item_input_cancelled = false
+		input_on_inventory.emit(
+			event, grabbed_stack, selected_item_inventory.get_item_view_at_positionv(selected_item_position)
+		)
+		if item_input_cancelled:
+			item_input_cancelled = false
+			return
+
 	if event is InputEventMouseButton:
 		if Input.is_action_pressed(&"inventory_more"): return
 		if event.button_index == MOUSE_BUTTON_LEFT && event.pressed:
@@ -224,13 +269,19 @@ func _input(event : InputEvent):
 
 
 func _drop_surface_input(event : InputEvent):
+	item_input_cancelled = false
+	input_on_empty.emit(event, grabbed_stack)
+	if item_input_cancelled:
+		item_input_cancelled = false
+		return
+
 	if event is InputEventMouseButton && grabbed_stack != null && !event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			drop_on_ground(grabbed_stack, event.global_position)
+			drop_on_ground(grabbed_stack, event.position)
 			_set_grabbed_stack(null)
 			
 		if event.button_index == MOUSE_BUTTON_RIGHT:
-			drop_on_ground(grabbed_stack.duplicate_with_count(1), event.global_position)
+			drop_on_ground(grabbed_stack.duplicate_with_count(1), event.position)
 			grabbed_stack.count -= 1
 			if grabbed_stack.count == 0:
 				_set_grabbed_stack(null)

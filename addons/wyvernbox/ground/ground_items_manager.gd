@@ -2,10 +2,12 @@
 class_name GroundItemManager
 extends Node
 
+## Manages [ItemStack]s on the ground. Use its methods to create and pick up items into your inventory.
+
 signal item_clicked(item_node)
 
-## File path to autosave into when the scene changes or game is closed.
-## Save can also be triggered manually via [method save_state].
+## File path to autosave into when the scene changes or game is closed. [br]
+## Save can also be triggered manually via [method save_state]. [br]
 ## Only supports "user://" paths.
 @export var autosave_file_path := ""
 
@@ -38,8 +40,8 @@ func _ready():
 func _exit_tree():
 	save_state(autosave_file_path)
 
-## Creates an in-world representation of stack [code]stack[/code] at global position [code]global_pos[/code].
-## If [code]throw_vector[/code] set, the item will also jump landing at position [code]global_pos + throw_vector[/code].
+## Creates an in-world representation of stack [code]stack[/code] at global position [code]global_pos[/code]. [br]
+## If [code]throw_vector[/code] set, the item will also jump landing at position [code]global_pos + throw_vector[/code]. [br]
 ## If [code]throw_vector[/code] not set, item will land a random short distance nearby.
 func add_item(stack : ItemStack, global_pos, throw_vector = null):
 	var item_node = item_scene.instantiate()
@@ -66,14 +68,9 @@ func load_from_array(array : Array):
 		add_child(new_node)
 		new_node.skip_spawn_animation()
 
-		var new_stack := ItemStack.new(load(x["type"]), x["count"], x["extra"])
-		new_stack.name_with_affixes = x.get("name", [null])
+		var new_stack := ItemStack.new_from_dict(x)
 		new_node.item_stack = new_stack
-		if new_node is Node2D:
-			new_node.position = x["position"]
-
-		else:
-			new_node.position = x["position"]
+		new_node.position = x[&"position"]
 
 ## Returns all ground items as an array of dictionaries. Useful for serialization.
 func to_array():
@@ -83,11 +80,11 @@ func to_array():
 	for i in array.size():
 		var cur_stack : ItemStack = children[i].item_stack
 		array[i] = {
-			"type" : cur_stack.item_type.resource_path,
-			"count" : cur_stack.count,
-			"extra" : cur_stack.extra_properties,
-			"name" : cur_stack.name_with_affixes,
-			"position" : (children[i].position if (children[i] is Node2D) else children[i].position)
+			&"type" : cur_stack.item_type.resource_path,
+			&"count" : cur_stack.count,
+			&"extra" : cur_stack.extra_properties,
+			&"name" : [cur_stack.name_prefixes, cur_stack.name_override, cur_stack.name_suffixes],
+			&"position" : children[i].position,
 		}
 	
 	return array
@@ -151,7 +148,7 @@ func _apply_view_filters(stack_index : int = -1):
 
 	get_child(stack_index).filter_hidden = !all_match
 
-## Writes ground items to file [code]filename[/code].
+## Writes ground items to file [code]filename[/code]. [br]
 ## Only [code]user://[/code] paths are supported.
 func save_state(filename):
 	if filename == "": return
@@ -164,7 +161,7 @@ func save_state(filename):
 	var file = FileAccess.open(filename, FileAccess.WRITE)
 	file.store_var(to_array())
 
-## Loads ground items from file [code]filename[/code].
+## Loads ground items from file [code]filename[/code]. [br]
 ## Only [code]user://[/code] paths are supported.
 func load_state(filename):
 	if filename == "": return

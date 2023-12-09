@@ -9,6 +9,10 @@ enum Type {
 	PERCENT_CHANGE, ## Percent increase/decrease, added together to then modify base.
 	PERCENT_MAGNITUDE, ## Multiplier of percent changes, MULTIPLIED together.
 	MULTIPLIER, ## Multiplier of total value, MULTIPLIED together.
+	FLAT_BONUS, ## Flat bonus, added to the value [b]after[/b] all multipliers.
+	_5, ## Currently unused. If you have ideas, open an issue on https://github.com/don-tnowe/godot-wyvernshield-triggers/issues
+	LOWER_LIMIT, ## Lower limit of the resulting value. The highest modification will be applied.
+	UPPER_LIMIT, ## Upper limit of the resulting value. The lowest modification will be applied.
 	MAX ## The size of the enumeration.
 }
 
@@ -28,6 +32,9 @@ enum Type {
 		expires_in = max(v, 0)
 		_update_name()
 
+## If [code]true[/code], adds a unique number to the path, so that if a modification with the same [member at_path] was already applied, it is still applied independently.
+@export var non_repeat := false
+
 ## Names of modified stats.
 var stat_names : Array[StringName]
 ## Values of modified stats.
@@ -40,9 +47,11 @@ func _init():
 	at_path = &"init"  # Triggers setter.
 
 
-## Applies modifications. Overrides modifications at [member at_path].
-## The [code]with_magnitude[/code] parameter will be multiplied by this object's [member magnitude].
-func apply(to: StatSheet, with_magnitude : float = 1.0):
+## Applies modifications. Overrides modifications at [member at_path]. [br]
+## The [code]with_magnitude[/code] parameter will be multiplied by this object's [member magnitude]. [br]
+## Returns the path applied to, which may differ if [member non_repeat] is set, to then remove it using [method StatSheet.clear]. [br]
+func apply(to: StatSheet, with_magnitude : float = 1.0) -> StringName:
+	var applied_path = to.get_non_repeating_path(at_path) if non_repeat else at_path
 	to.lock()
 	for i in stat_names.size():
 		var new_value := 0.0
@@ -53,11 +62,13 @@ func apply(to: StatSheet, with_magnitude : float = 1.0):
 		else:
 			new_value = (stat_values[i] - 1.0) * magnitude * with_magnitude + 1.0
 
-		to.set_stat(stat_names[i], new_value, at_path, stat_modification_types[i])
+		to.set_stat(stat_names[i], new_value, applied_path, stat_modification_types[i])
 
 	to.unlock()
 	if expires_in != 0.0:
-		to.clear_timed(at_path, expires_in)
+		to.clear_timed(applied_path, expires_in)
+
+	return applied_path
 
 ## Returns a copy of this modification, but with [member magnitude] multiplied by a value.
 ## If you only need to apply magnitude once, use [method apply] with the [code]with_magnitude[/code] parameter set.
