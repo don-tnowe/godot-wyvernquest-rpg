@@ -30,6 +30,7 @@ script = ExtResource("8_1amqb")
 at_path = &"status/frailty_shard"
 magnitude = 1.0
 expires_in = 3.0
+non_repeat = false
 stat_count = 1
 stat_0/stat = &"defense"
 stat_0/value = 0.25
@@ -69,6 +70,7 @@ script = ExtResource("8_1amqb")
 at_path = &"status/sharpshooter"
 magnitude = 1.0
 expires_in = 5.0
+non_repeat = false
 stat_count = 3
 stat_0/stat = &"movement_speed"
 stat_0/value = 0.5
@@ -96,6 +98,7 @@ script = ExtResource("8_1amqb")
 at_path = &"equip/weapon"
 magnitude = 1.0
 expires_in = 0.0
+non_repeat = false
 stat_count = 2
 stat_0/stat = &"weapon_damage"
 stat_0/value = 8.0
@@ -125,6 +128,7 @@ script = ExtResource("8_1amqb")
 at_path = &"equip/weapon"
 magnitude = 1.0
 expires_in = 0.0
+non_repeat = false
 stat_count = 2
 stat_0/stat = &"weapon_damage"
 stat_0/value = 4.0
@@ -145,6 +149,7 @@ script = ExtResource("8_1amqb")
 at_path = &"init"
 magnitude = 1.0
 expires_in = 0.0
+non_repeat = false
 stat_count = 5
 stat_0/stat = &"max_hp"
 stat_0/value = 20.0
@@ -196,6 +201,18 @@ tracks/1/keys = {
 "update": 0,
 "values": [Vector3(0, 0.25, 0)]
 }
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visual/Flip/Sprite3D:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(1, 1, 1)]
+}
 
 [sub_resource type="Animation" id="42"]
 resource_name = "idle"
@@ -218,16 +235,29 @@ tracks/1/path = NodePath("Visual/Flip/Sprite3D:position")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0.296975, 0), Vector3(0, 0.296975, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visual/Flip/Sprite3D:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector3(0, 0.296975, 0)]
+"values": [Vector3(1, 1, 1)]
 }
 
 [sub_resource type="Animation" id="44"]
 resource_name = "run"
-length = 0.4
+length = 0.8
 loop_mode = 1
+step = 0.025
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -235,10 +265,10 @@ tracks/0/path = NodePath("Visual/Flip/Sprite3D:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.2),
-"transitions": PackedFloat32Array(1, 1),
+"times": PackedFloat32Array(0.1, 0.275, 0.5, 0.675),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 1,
-"values": [2, 3]
+"values": [5, 6, 5, 4]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -247,10 +277,22 @@ tracks/1/path = NodePath("Visual/Flip/Sprite3D:position")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0.1, 0.3),
-"transitions": PackedFloat32Array(2, 0.5),
+"times": PackedFloat32Array(0, 0.2, 0.4, 0.6),
+"transitions": PackedFloat32Array(2, 0.5, 2, 0.5),
 "update": 0,
-"values": [Vector3(0, 0.4, 0), Vector3(0, 0.25, 0)]
+"values": [Vector3(0, 0.3, 0), Vector3(0, 0.25, 0), Vector3(0, 0.3, 0), Vector3(0, 0.25, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visual/Flip/Sprite3D:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.8),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(1, 1, 1), Vector3(1, 1, 1)]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_f6ne8"]
@@ -361,13 +403,13 @@ shape = SubResource("CylinderShape3D_00mx1")
 
 [node name="Sprite3D" type="Sprite3D" parent="Visual/Flip"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
-pixel_size = 0.02
+pixel_size = 0.004
 billboard = 1
 alpha_cut = 1
 texture_filter = 0
 texture = ExtResource("1_cjwhw")
-hframes = 2
-vframes = 2
+hframes = 4
+vframes = 4
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.666532, 0.745476, 0, -0.745476, 0.666532, 0, 3.45, 3)

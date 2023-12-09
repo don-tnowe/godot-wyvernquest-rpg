@@ -25,22 +25,24 @@ func _ready():
 
 
 func _physics_process(delta):
-	var input_vec := Input.get_vector(&"ui_left", &"ui_right", &"ui_up", &"ui_down")
+	var input_vec := Input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_backwards")
 	var velocity_h := Vector2(velocity.x, velocity.z)
 	var speed_delta := move_brake
 	if input_vec != Vector2.ZERO:
 		# Changes speed at `move_brake` if pushing against velocity vec, `move_accel` if forwards or sideways
-		speed_delta = lerp(move_brake, move_accel, min(input_vec.dot(velocity_h.normalized()) + 1, 1))
+		speed_delta = -0.5 * (input_vec.dot(velocity_h.normalized()) - 1.0) * move_brake + move_accel
 		last_input_direction = Vector3(input_vec.x, 0, input_vec.y).normalized()
-		anim.play("run")
+		if anim.current_animation != &"run":
+			anim.play(&"run")
 
 	else:
-		anim.play("idle")
+		if anim.current_animation != &"idle":
+			anim.play(&"idle")
 
 	velocity_h = velocity_h.move_toward(input_vec * move_maxspeed, delta * speed_delta)
 	velocity = Vector3(velocity_h.x, 0, velocity_h.y)
 	if input_vec.x != 0:
-		$"Visual/Flip/Sprite3D".flip_h = input_vec.x > 0
+		$"Visual/Flip/Sprite3D".flip_h = input_vec.x < 0
 
 	move_and_slide()
 

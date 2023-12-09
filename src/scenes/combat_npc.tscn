@@ -15,6 +15,7 @@ script = ExtResource("6_g0qcg")
 at_path = &"init"
 magnitude = 1.0
 expires_in = 0.0
+non_repeat = false
 stat_count = 5
 stat_0/stat = &"max_hp"
 stat_0/value = 80.0
@@ -143,7 +144,7 @@ shape = SubResource("2")
 
 [node name="Sprite2D" type="Sprite3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0724338, 0)
-pixel_size = 0.02
+pixel_size = 0.004
 billboard = 1
 alpha_cut = 1
 texture_filter = 0
@@ -152,7 +153,7 @@ hframes = 2
 vframes = 2
 
 [node name="Anim" type="AnimationPlayer" parent="."]
-autoplay = "init"
 libraries = {
 "": SubResource("AnimationLibrary_0m301")
 }
+autoplay = "init"
